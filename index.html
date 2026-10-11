@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>暗挖施工测量：锁口圈 · 竖井横通道 · 马头门</title>
+<style>
+/* 固定的蓝图配色：这是一页录屏用的竖屏动画，所有主题下都保持深蓝底 */
+:root{
+  --bg:#0b2545; --panel:#12315a; --line:#8ecbff; --hi:#ff9f43;
+  --ink:#f2f8ff; --dim:#3d6a9e; --dimt:#9fbfe0; --ok:#7ee2b8;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{
+  height:100%;margin:0;background:#0b2545;color:var(--ink);
+  display:flex;justify-content:center;align-items:stretch;overflow:hidden;
+  font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC",system-ui,sans-serif;
+  -webkit-tap-highlight-color:transparent;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+
+.stage{
+  position:relative;height:100%;
+  width:min(100%,calc((100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)) * 9 / 16));
+  container-type:inline-size;
+  display:flex;flex-direction:column;background:var(--bg);overflow:hidden;
+}
+.prog{display:flex;gap:1cqw;padding:3cqw 4cqw 0}
+.prog span{flex:1;height:.9cqw;border-radius:1cqw;background:rgba(142,203,255,.2);overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--hi)}
+.hd{display:flex;align-items:center;gap:3cqw;padding:3.5cqw 5cqw 0;min-height:12cqw;transition:opacity .4s}
+.hd.off{opacity:0}
+.chip{border:.35cqw solid var(--hi);color:var(--hi);border-radius:5cqw;padding:.6cqw 2.6cqw;font-size:3.6cqw;font-weight:700;font-variant-numeric:tabular-nums}
+.ttl{font-size:5.8cqw;font-weight:800;letter-spacing:.2cqw}
+
+.view{position:relative;flex:1;min-height:0}
+.scene{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .5s}
+.scene.active{opacity:1}
+.scene svg{width:100%;height:100%;display:block}
+
+.cap{
+  min-height:26cqw;padding:2cqw 6cqw 3cqw;display:flex;align-items:center;justify-content:center;
+  text-align:center;font-size:5.4cqw;line-height:1.55;font-weight:600;
+}
+.cap b{color:var(--hi);font-weight:800}
+.cap.in{animation:capin .4s ease-out}
+@keyframes capin{from{opacity:0;transform:translateY(1.5cqw)}to{opacity:1;transform:none}}
+
+.controls{display:flex;justify-content:center;align-items:center;gap:5cqw;padding:1cqw 0 4cqw;transition:opacity .4s}
+.stage.hideui .controls{opacity:0;pointer-events:none}
+.controls button{width:12cqw;height:12cqw;border-radius:50%;border:.4cqw solid var(--dim);background:var(--panel);font-size:4.6cqw;line-height:1}
+
+/* 开场 / 倒计时 / 结束 */
+.ov{position:absolute;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;justify-content:center;gap:4cqw;padding:8cqw;text-align:center;background:rgba(7,22,42,.94)}
+.ov.show{display:flex}
+.ov h2{margin:0;font-size:8cqw;font-weight:800}
+.ov p{margin:0;font-size:4.2cqw;line-height:1.7;color:var(--dimt)}
+.ov .go{margin-top:3cqw;border:0;border-radius:8cqw;padding:3.6cqw 9cqw;background:var(--hi);color:#1a1205;font-size:5.4cqw;font-weight:800}
+.ov .num{font-size:34cqw;font-weight:800;color:var(--hi);line-height:1;font-variant-numeric:tabular-nums}
+
+/* 动画基础件 */
+.fade{opacity:0;transition:opacity .6s ease}
+.fade.on{opacity:1}
+.draw{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset var(--d,1s) ease-in-out}
+.draw.on{stroke-dashoffset:0}
+.grow-y,.grow-x{transform-box:fill-box;transition:transform var(--d,2s) ease-in-out}
+.grow-y{transform-origin:top;transform:scaleY(0)}
+.grow-y.on{transform:scaleY(1)}
+.grow-x{transform-origin:left;transform:scaleX(0)}
+.grow-x.on{transform:scaleX(1)}
+.rise{opacity:0;transform:translateY(2cqw);transition:opacity .6s ease,transform .6s ease}
+.rise.on{opacity:1;transform:none}
+.ping{transform-box:fill-box;transform-origin:center;opacity:0}
+.ping.on{animation:ping 1.5s ease-out 3}
+@keyframes ping{0%{transform:scale(1);opacity:.9}100%{transform:scale(3.4);opacity:0}}
+.reset,.reset *{transition:none!important;animation:none!important}
+
+/* 线条与文字 */
+.l{fill:none;stroke:var(--line);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.c-hi{stroke:var(--hi)} .c-ink{stroke:var(--ink)} .c-dim{stroke:var(--dim)} .c-ok{stroke:var(--ok)}
+.w2{stroke-width:2.6} .w3{stroke-width:3.2} .thin{stroke-width:1}
+.dash{stroke-dasharray:4 4}
+.t{fill:var(--ink);font-size:13px;font-weight:600;stroke:var(--bg);stroke-width:3px;paint-order:stroke;stroke-linejoin:round}
+.t.sm{font-size:11.5px}
+.t.big{font-size:19px;font-weight:800}
+.t-hi{fill:var(--hi)} .t-dim{fill:var(--dimt)} .t-ok{fill:var(--ok)}
+
+/* 开场页与小结页（HTML 场景） */
+.scene.html{display:flex;flex-direction:column;justify-content:center;gap:3.5cqw;padding:0 8cqw}
+.deco{position:absolute;right:-6cqw;top:2cqw;width:62cqw;height:62cqw;opacity:.9}
+.kicker{margin:0;font-size:4.4cqw;color:var(--dimt);font-weight:600}
+.big-t{margin:0;display:flex;flex-direction:column;gap:1.5cqw;font-size:13cqw;line-height:1.1;font-weight:800;letter-spacing:.4cqw}
+.big-t .a{color:var(--hi)} .big-t .b{color:var(--line)} .big-t .c{color:var(--ink)}
+.sub{margin:0;font-size:4.6cqw;color:var(--dimt)}
+.sum h2{margin:0 0 1cqw;font-size:8cqw;font-weight:800}
+.card{display:flex;gap:4cqw;align-items:flex-start;padding:4cqw;background:var(--panel);border-left:1.2cqw solid var(--hi);border-radius:1.5cqw}
+.card em{font-style:normal;font-size:8cqw;font-weight:800;color:var(--hi);line-height:1;font-variant-numeric:tabular-nums}
+.card b{display:block;font-size:5.8cqw;font-weight:800;margin-bottom:1cqw}
+.card span{display:block;font-size:4cqw;line-height:1.55;color:var(--dimt)}
+.src{margin:1cqw 0 0;font-size:3.4cqw;color:var(--dimt);line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- 共用图案 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#3d6a9e" stroke-width=".5" opacity=".55"/></pattern>
+  <pattern id="soil" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><rect width="12" height="12" fill="#0f2f55"/><path d="M0 6H12" stroke="#2d5a8c" stroke-width="1"/><circle cx="3" cy="2" r=".8" fill="#2d5a8c"/></pattern>
+  <pattern id="wall" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="#123a66"/><path d="M0 14L14 0" stroke="#3d6a9e" stroke-width="1"/></pattern>
+  <pattern id="tape" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#ff9f43" opacity=".28"/><path d="M0 .7H8" stroke="#ff9f43" stroke-width="1.4"/></pattern>
+</defs></svg>
+
+<main class="stage" id="stage">
+  <div class="prog" id="prog"></div>
+  <div class="hd off" id="hd"><span class="chip" id="chip"></span><span class="ttl" id="ttl"></span></div>
+
+  <div class="view" id="view">
+
+    <!-- 0 开场 -->
+    <section class="scene html" id="sc0">
+      <svg class="deco" viewBox="0 0 200 200" aria-hidden="true">
+        <circle class="l c-dim draw" style="--d:2s" pathLength="1" data-t="0.1" cx="100" cy="100" r="70"/>
+        <circle class="l c-hi draw" style="--d:1.6s" pathLength="1" data-t="0.3" cx="100" cy="100" r="34"/>
+        <path class="l draw" style="--d:1.4s" pathLength="1" data-t="0.2" d="M100 10V190"/>
+        <path class="l draw" style="--d:1.4s" pathLength="1" data-t="0.4" d="M10 100H190"/>
+      </svg>
+      <p class="kicker rise" data-t="0.3" style="margin-top:34cqw">城市轨道交通 · 暗挖施工测量</p>
+      <h1 class="big-t">
+        <span class="a rise" data-t="0.7">锁口圈</span>
+        <span class="b rise" data-t="1.2">竖井横通道</span>
+        <span class="c rise" data-t="1.7">马头门</span>
+      </h1>
+      <p class="sub rise" data-t="2.6">知识分享：从地面到洞内，怎么一步步放样</p>
+    </section>
+
+    <!-- 1 锁口圈定位 -->
+    <section class="scene" id="sc1">
+      <svg viewBox="0 0 360 420" preserveAspectRatio="xMidYMid meet">
+        <rect width="360" height="420" fill="url(#grid)"/>
+        <g class="fade" data-t="1.0">
+          <rect x="16" y="14" width="176" height="26" rx="13" fill="#12315a" stroke="#3d6a9e"/>
+          <text class="t sm" x="104" y="31" text-anchor="middle">依据：加密导线测量成果</text>
+        </g>
+        <g class="fade" data-t="0.4">
+          <circle class="l c-hi" cx="290" cy="90" r="5"/><circle cx="290" cy="90" r="1.8" fill="#ff9f43"/>
+          <text class="t" x="290" y="76" text-anchor="middle">GTD31</text>
+          <circle class="l c-hi" cx="200" cy="150" r="5"/><circle cx="200" cy="150" r="1.8" fill="#ff9f43"/>
+          <text class="t" x="200" y="136" text-anchor="middle">GTD30</text>
+        </g>
+        <path class="l dash fade" data-t="1.6" d="M200 150L290 90"/>
+        <text class="t sm t-dim fade" data-t="1.8" x="262" y="128">后视方向</text>
+        <circle class="l c-hi ping" data-t="2.4" cx="200" cy="150" r="5"/>
+        <text class="t sm t-dim fade" data-t="2.4" x="200" y="174" text-anchor="middle">全站仪设站</text>
+
+        <path class="l thin draw" style="--d:.8s" pathLength="1" data-t="4.0" d="M200 150L70 250"/>
+        <path class="l thin draw" style="--d:.8s" pathLength="1" data-t="4.5" d="M200 150L190 250"/>
+        <path class="l thin draw" style="--d:.8s" pathLength="1" data-t="5.0" d="M200 150L190 330"/>
+        <path class="l thin draw" style="--d:.8s" pathLength="1" data-t="5.5" d="M200 150L70 330"/>
+        <circle class="fade" data-t="4.6" cx="70" cy="250" r="3.6" fill="#ff9f43"/>
+        <circle class="fade" data-t="5.1" cx="190" cy="250" r="3.6" fill="#ff9f43"/>
+        <circle class="fade" data-t="5.6" cx="190" cy="330" r="3.6" fill="#ff9f43"/>
+        <circle class="fade" data-t="6.1" cx="70" cy="330" r="3.6" fill="#ff9f43"/>
+
+        <path class="l c-hi w2 draw" style="--d:1.2s" pathLength="1" data-t="7.0" d="M70 250H190V330H70Z"/>
+        <path class="l draw" style="--d:1.0s" pathLength="1" data-t="7.8" d="M80 260H180V320H80Z"/>
+        <g class="fade" data-t="8.5">
+          <text class="t big" x="130" y="296" text-anchor="middle">锁口圈</text>
+          <text class="t sm t-dim" x="130" y="352" text-anchor="middle">按图纸放样</text>
+        </g>
+        <g class="fade" data-t="0.4">
+          <path class="l" d="M322 400V372M322 372l-5 10M322 372l5 10"/>
+          <text class="t sm" x="322" y="414" text-anchor="middle">N</text>
+        </g>
+      </svg>
+    </section>
+
+    <!-- 2 竖井：吊线与吊钢尺 -->
+    <section class="scene" id="sc2">
+      <svg viewBox="0 0 360 420" preserveAspectRatio="xMidYMid meet">
+        <rect x="0" y="90" width="360" height="330" fill="url(#soil)"/>
+        <path class="l c-dim" d="M0 90H360"/>
+        <rect class="grow-y" style="--d:3s" data-t="0.6" x="110" y="90" width="140" height="300" fill="#0b2545"/>
+        <path class="l w2 draw" style="--d:3s" pathLength="1" data-t="0.6" d="M110 90V390"/>
+        <path class="l w2 draw" style="--d:3s" pathLength="1" data-t="0.6" d="M250 90V390"/>
+        <path class="l w2 fade" data-t="3.6" d="M110 390H250"/>
+        <rect x="96" y="82" width="14" height="36" fill="#ff9f4333" stroke="#ff9f43" stroke-width="2"/>
+        <rect x="250" y="82" width="14" height="36" fill="#ff9f4333" stroke="#ff9f43" stroke-width="2"/>
+        <text class="t t-hi" x="103" y="70" text-anchor="middle">锁口圈</text>
+
+        <g class="fade" data-t="4.2">
+          <path d="M110 100l9 5-9 5z" fill="#ff9f43"/>
+          <path d="M250 100l-9 5 9 5z" fill="#ff9f43"/>
+          <path class="l c-hi dash thin" d="M119 105H241"/>
+          <text class="t sm t-hi" x="180" y="126" text-anchor="middle">圈梁侧壁上的中线点</text>
+        </g>
+
+        <path class="l c-ink draw" style="--d:2.4s" pathLength="1" data-t="6.6" d="M120 112V338"/>
+        <circle class="fade" data-t="9.0" cx="120" cy="346" r="4.5" fill="#f2f8ff"/>
+        <g class="fade" data-t="7.0">
+          <text class="t" x="130" y="206">吊线</text>
+          <text class="t sm t-dim" x="130" y="224">向下传递中线</text>
+        </g>
+
+        <rect class="grow-y" style="--d:2.4s" data-t="9.2" x="236" y="112" width="8" height="236" fill="url(#tape)" stroke="#ff9f43" stroke-width="1"/>
+        <g class="fade" data-t="9.8">
+          <text class="t" x="228" y="206" text-anchor="end">吊钢尺</text>
+          <text class="t sm t-dim" x="228" y="224" text-anchor="end">传递高程</text>
+        </g>
+        <g class="fade" data-t="11.2">
+          <path class="l c-hi" d="M224 348H252"/>
+          <text class="t sm t-hi" x="222" y="366" text-anchor="end">井下高程点</text>
+        </g>
+      </svg>
+    </section>
+
+    <!-- 3 横通道：双钢丝联系测量 -->
+    <section class="scene" id="sc3">
+      <svg viewBox="0 0 360 420" preserveAspectRatio="xMidYMid meet">
+        <rect x="0" y="100" width="360" height="320" fill="url(#soil)"/>
+        <path class="l c-dim" d="M0 100H360"/>
+        <rect x="60" y="100" width="150" height="290" fill="#0b2545"/>
+        <path class="l w2" d="M60 100V390H210V372"/>
+        <path class="l w2" d="M210 322V100"/>
+        <rect x="46" y="92" width="14" height="32" fill="#ff9f4333" stroke="#ff9f43" stroke-width="2"/>
+        <rect x="210" y="92" width="14" height="32" fill="#ff9f4333" stroke="#ff9f43" stroke-width="2"/>
+
+        <path class="l c-hi w2 draw" style="--d:1.2s" pathLength="1" data-t="0.5" d="M72 100V72H198V100"/>
+        <text class="t fade" data-t="1.0" x="135" y="62" text-anchor="middle">牢固框架</text>
+
+        <path class="l c-ink draw" style="--d:2s" pathLength="1" data-t="2.4" d="M100 72V352"/>
+        <path class="l c-ink draw" style="--d:2s" pathLength="1" data-t="2.7" d="M136 72V352"/>
+        <g class="fade" data-t="2.8">
+          <text class="t t-hi" x="94" y="118" text-anchor="end">L1</text>
+          <text class="t t-hi" x="142" y="118">L2</text>
+        </g>
+
+        <g class="fade" data-t="4.6">
+          <rect x="86" y="366" width="28" height="16" fill="#ff9f43" opacity=".35"/>
+          <rect x="122" y="366" width="28" height="16" fill="#ff9f43" opacity=".35"/>
+          <rect x="95" y="352" width="10" height="22" fill="#f2f8ff"/>
+          <rect x="131" y="352" width="10" height="22" fill="#f2f8ff"/>
+          <path class="l" d="M86 352V382H114V352"/>
+          <path class="l" d="M122 352V382H150V352"/>
+          <text class="t sm t-hi" x="118" y="334" text-anchor="middle">10kg</text>
+        </g>
+
+        <g class="fade" data-t="7.0">
+          <circle cx="136" cy="150" r="3.6" fill="#ff9f43"/>
+          <circle cx="136" cy="290" r="3.6" fill="#ff9f43"/>
+          <text class="t sm t-hi" x="146" y="154">(X, Y)</text>
+          <text class="t sm t-hi" x="146" y="294">(X, Y)</text>
+          <text class="t sm t-dim" x="146" y="216">平面坐标</text>
+          <text class="t sm t-dim" x="146" y="232">处处相同</text>
+        </g>
+
+        <g class="fade" data-t="8.8">
+          <path class="l c-hi" d="M243 100L250 84L257 100"/>
+          <rect x="245" y="76" width="10" height="8" fill="#ff9f43"/>
+          <text class="t" x="250" y="64" text-anchor="middle">井上测站</text>
+          <circle class="l c-hi" cx="292" cy="100" r="4"/>
+          <text class="t sm" x="292" y="90" text-anchor="middle">GTD30</text>
+          <circle class="l c-hi" cx="336" cy="100" r="4"/>
+          <text class="t sm" x="336" y="90" text-anchor="middle">GTD31</text>
+        </g>
+        <path class="l c-hi dash thin fade" data-t="9.4" d="M246 82L100 96"/>
+        <path class="l c-hi dash thin fade" data-t="9.7" d="M246 82L136 96"/>
+
+        <g class="fade" data-t="11.2">
+          <path class="l c-hi" d="M168 390L175 374L182 390"/>
+          <rect x="171" y="366" width="8" height="8" fill="#ff9f43"/>
+          <text class="t" x="176" y="354" text-anchor="middle">井下测站</text>
+          <path class="l c-hi dash thin" d="M172 368L136 354"/>
+          <path class="l c-hi dash thin" d="M172 368L100 350"/>
+          <text class="t sm t-hi" x="176" y="408" text-anchor="middle">后方交会</text>
+        </g>
+
+        <g class="fade" data-t="13.6">
+          <rect x="60" y="328" width="6" height="14" fill="#7ee2b8"/>
+          <path class="l c-ok dash thin" d="M171 368L66 336"/>
+          <text class="t sm t-ok" x="68" y="320">反射片</text>
+        </g>
+
+        <rect class="grow-x" style="--d:2s" data-t="16.4" x="210" y="322" width="140" height="50" fill="#0b2545"/>
+        <path class="l w2 draw" style="--d:2s" pathLength="1" data-t="16.4" d="M210 322H350"/>
+        <path class="l w2 draw" style="--d:2s" pathLength="1" data-t="16.4" d="M210 372H350"/>
+        <text class="t t-hi fade" data-t="17.0" x="280" y="310" text-anchor="middle">横通道</text>
+        <g class="fade" data-t="18.4">
+          <path d="M262 358L256 370H268Z" fill="#ff9f43"/>
+          <path d="M312 358L306 370H318Z" fill="#ff9f43"/>
+          <text class="t sm" x="287" y="346" text-anchor="middle">固定控制点</text>
+        </g>
+      </svg>
+    </section>
+
+    <!-- 4 马头门 -->
+    <section class="scene" id="sc4">
+      <svg viewBox="0 0 360 420" preserveAspectRatio="xMidYMid meet">
+        <rect x="30" y="50" width="300" height="330" fill="url(#wall)" stroke="#3d6a9e"/>
+        <text class="t sm t-dim" x="42" y="68">洞口墙壁</text>
+        <path class="fade" data-t="10.4" fill="#0b2545" opacity=".92" d="M120 330V200A60 60 0 0 1 240 200V330Z"/>
+
+        <path class="l c-hi dash fade" data-t="0.4" d="M180 40V380"/>
+        <text class="t t-hi fade" data-t="0.6" x="180" y="30" text-anchor="middle">马头门中心线</text>
+        <path class="l dash fade" data-t="1.6" d="M120 130V380"/>
+        <path class="l dash fade" data-t="1.6" d="M240 130V380"/>
+        <g class="fade" data-t="1.8">
+          <text class="t sm" x="120" y="122" text-anchor="middle">边线</text>
+          <text class="t sm" x="240" y="122" text-anchor="middle">边线</text>
+        </g>
+
+        <path class="l c-hi w2 draw" style="--d:1s" pathLength="1" data-t="3.2" d="M100 200H260"/>
+        <g class="fade" data-t="3.8">
+          <text class="t t-hi" x="266" y="196">起拱线</text>
+          <text class="t sm t-dim" x="266" y="212">放样标高</text>
+        </g>
+
+        <g class="fade" data-t="5.4">
+          <path class="l c-hi" d="M106 200H114M106 188H114M110 200V188"/>
+          <text class="t sm t-hi" x="102" y="198" text-anchor="end">500mm</text>
+        </g>
+        <g class="fade" data-t="5.8">
+          <path class="l c-ink thin" d="M121.2 188H238.8"/>
+          <circle cx="121.2" cy="188" r="3" fill="#f2f8ff"/><circle cx="238.8" cy="188" r="3" fill="#f2f8ff"/>
+        </g>
+        <g class="fade" data-t="6.3">
+          <path class="l c-ink thin" d="M125 176H235"/>
+          <circle cx="125" cy="176" r="3" fill="#f2f8ff"/><circle cx="235" cy="176" r="3" fill="#f2f8ff"/>
+        </g>
+        <g class="fade" data-t="6.8">
+          <path class="l c-ink thin" d="M132 164H228"/>
+          <circle cx="132" cy="164" r="3" fill="#f2f8ff"/><circle cx="228" cy="164" r="3" fill="#f2f8ff"/>
+        </g>
+        <g class="fade" data-t="7.3">
+          <path class="l c-ink thin" d="M144 152H216"/>
+          <circle cx="144" cy="152" r="3" fill="#f2f8ff"/><circle cx="216" cy="152" r="3" fill="#f2f8ff"/>
+        </g>
+        <g class="fade" data-t="7.8">
+          <circle cx="180" cy="140" r="3" fill="#f2f8ff"/>
+        </g>
+
+        <path class="l c-hi w3 draw" style="--d:1.6s" pathLength="1" data-t="8.6" d="M120 200A60 60 0 0 1 240 200"/>
+        <path class="l c-hi w3 draw" style="--d:1.2s" pathLength="1" data-t="10.2" d="M120 200V330"/>
+        <path class="l c-hi w3 draw" style="--d:1.2s" pathLength="1" data-t="10.2" d="M240 200V330"/>
+        <text class="t big fade" data-t="10.8" x="180" y="272" text-anchor="middle">马头门</text>
+      </svg>
+    </section>
+
+    <!-- 5 小结 -->
+    <section class="scene html" id="sc5">
+      <div class="sum" style="display:flex;flex-direction:column;gap:3.5cqw">
+        <h2 class="rise" data-t="0.2">三步小结</h2>
+        <div class="card rise" data-t="1.0"><em>1</em><div><b>锁口圈</b><span>依据加密导线成果，按图纸放样出位置</span></div></div>
+        <div class="card rise" data-t="2.4"><em>2</em><div><b>竖井 · 横通道</b><span>吊线传中线，吊钢尺传高程；双钢丝加后方交会，一井定向</span></div></div>
+        <div class="card rise" data-t="3.8"><em>3</em><div><b>马头门</b><span>中心线、边线，起拱线标高，每 500mm 一个支距，连成拱部轮廓</span></div></div>
+        <p class="src rise" data-t="5.4">内容整理自《城市轨道交通工程测量与实例》第 4 章 4.2.4 暗挖施工测量</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="cap" id="cap"></div>
+
+  <div class="controls" id="controls">
+    <button id="bPrev" aria-label="上一段">⏮</button>
+    <button id="bPlay" aria-label="暂停或继续">⏸</button>
+    <button id="bNext" aria-label="下一段">⏭</button>
+  </div>
+
+  <div class="ov show" id="ovStart">
+    <h2>暗挖施工测量<br>讲解动画</h2>
+    <p>锁口圈 · 竖井横通道 · 马头门<br>约 1 分 10 秒，竖屏播放</p>
+    <p>先打开手机录屏，再点开始。<br>播放中点一下屏幕，可显示或隐藏按钮。</p>
+    <button class="go" id="goBtn">开始（3 秒后播放）</button>
+  </div>
+  <div class="ov" id="ovCount"><div class="num" id="num">3</div></div>
+  <div class="ov" id="ovEnd">
+    <h2>播放完毕</h2>
+    <p>可以停止录屏了</p>
+    <button class="go" id="replayBtn">重新播放</button>
+  </div>
+</main>
+
+<script>
+(function(){
+  var S=[
+    {dur:5,chip:'',title:'',caps:[[0.4,'从地面到洞内，测量是怎么<b>一步步</b>往下做的']]},
+    {dur:10,chip:'4.2.4.1',title:'锁口圈定位测量',caps:[
+      [0.4,'暗挖第一步：先把<b>锁口圈</b>的位置定出来'],
+      [2.2,'依据<b>加密导线</b>测量成果，在控制点上设站'],
+      [4.0,'按图纸<b>放样</b>锁口圈的四个角点'],
+      [7.0,'角点连成<b>锁口圈</b>轮廓']]},
+    {dur:12.5,chip:'4.2.4.2',title:'竖井施工测量',caps:[
+      [0.3,'锁口圈完成后，开始<b>开挖竖井</b>'],
+      [4.2,'把锁口圈<b>中线</b>放样在圈梁侧壁上'],
+      [6.6,'用<b>吊线</b>的方法，把中线向下传递'],
+      [9.2,'<b>高程</b>用吊钢尺的方法传递']]},
+    {dur:21.5,chip:'4.2.4.2',title:'横通道施工测量',caps:[
+      [0.4,'竖井挖到横通道位置，井口先架<b>牢固框架</b>'],
+      [2.4,'框架上固定<b>两根钢丝</b> L1、L2，底端挂 10kg 重锤'],
+      [5.0,'重锤浸入<b>油桶</b>（不碰桶壁），钢丝稳定下垂'],
+      [7.0,'钢丝上任意一点<b>平面坐标相同</b>，起传递作用'],
+      [8.8,'井上测站测出 <b>L1、L2 的坐标</b>'],
+      [11.2,'井下以 L1、L2 为已知点，<b>后方交会</b>设站'],
+      [13.6,'测出对壁<b>反射片</b>坐标，作为开马头门、横通道初期施工依据'],
+      [16.4,'横通道开挖一段后，装<b>固定控制点</b>，用<b>一井定向</b>测其坐标'],
+      [19.2,'多悬吊几根钢丝，可提高后方交会精度']]},
+    {dur:12.5,chip:'4.2.4.3',title:'马头门施工测量',caps:[
+      [0.3,'先在洞口墙壁放样<b>中心线</b>和<b>边线</b>'],
+      [3.0,'在中心线上放样出<b>起拱线</b>的位置标高'],
+      [5.2,'从起拱线沿中线，每隔 <b>500mm</b> 向上测设开挖支距'],
+      [8.4,'各支距端点连起来，形成<b>拱部开挖轮廓线</b>']]},
+    {dur:8,chip:'小结',title:'三步走',caps:[[0.4,'<b>定位置</b> → <b>传中线和高程</b> → <b>放轮廓</b>']]}
+  ];
+
+  var stage=document.getElementById('stage');
+  var els=[].slice.call(document.querySelectorAll('.scene'));
+  var prog=document.getElementById('prog');
+  var hd=document.getElementById('hd'), chip=document.getElementById('chip'), ttl=document.getElementById('ttl');
+  var cap=document.getElementById('cap');
+  var bPlay=document.getElementById('bPlay');
+  var segs=[];
+  S.forEach(function(){var s=document.createElement('span'),i=document.createElement('i');s.appendChild(i);prog.appendChild(s);segs.push(i);});
+
+  var idx=0,t=0,last=0,playing=false,raf=0,capIdx=-1,pend=[];
+
+  function showCap(h){cap.classList.remove('in');void cap.offsetWidth;cap.innerHTML=h;cap.classList.add('in');}
+
+  function enter(i){
+    idx=Math.max(0,Math.min(S.length-1,i));t=0;capIdx=-1;
+    els.forEach(function(e,k){e.classList.toggle('active',k===idx);});
+    var sc=els[idx];
+    sc.classList.add('reset');
+    [].forEach.call(sc.querySelectorAll('.on'),function(n){n.classList.remove('on');});
+    void sc.offsetWidth;
+    sc.classList.remove('reset');
+    pend=[].map.call(sc.querySelectorAll('[data-t]'),function(n){return {n:n,t:parseFloat(n.getAttribute('data-t'))};})
+      .sort(function(a,b){return a.t-b.t;});
+    var s=S[idx];
+    hd.classList.toggle('off',!s.chip);
+    chip.textContent=s.chip;ttl.textContent=s.title;
+    cap.innerHTML='';
+    updateProg();
+  }
+
+  function updateProg(){
+    segs.forEach(function(el,k){
+      el.style.width=(k<idx?100:(k===idx?Math.min(100,t/S[idx].dur*100):0))+'%';
+    });
+  }
+
+  function frame(ts){
+    if(!playing)return;
+    var dt=Math.min((ts-last)/1000,0.1);last=ts;t+=dt;
+    while(pend.length&&pend[0].t<=t){pend.shift().n.classList.add('on');}
+    var caps=S[idx].caps;
+    while(capIdx+1<caps.length&&caps[capIdx+1][0]<=t){capIdx++;showCap(caps[capIdx][1]);}
+    updateProg();
+    if(t>=S[idx].dur){
+      if(idx<S.length-1){enter(idx+1);}
+      else{finish();return;}
+    }
+    raf=requestAnimationFrame(frame);
+  }
+
+  function play(){
+    if(playing)return;
+    playing=true;bPlay.textContent='⏸';last=performance.now();
+    raf=requestAnimationFrame(frame);
+  }
+  function pause(){playing=false;bPlay.textContent='▶';cancelAnimationFrame(raf);}
+  function finish(){
+    playing=false;cancelAnimationFrame(raf);bPlay.textContent='▶';
+    stage.classList.remove('hideui');
+    document.getElementById('ovEnd').classList.add('show');
+  }
+
+  function stop(e){e.stopPropagation();}
+  ['bPrev','bPlay','bNext'].forEach(function(id){document.getElementById(id).addEventListener('click',stop);});
+  document.getElementById('bPrev').addEventListener('click',function(){enter(idx-1);play();});
+  document.getElementById('bNext').addEventListener('click',function(){enter(idx+1);play();});
+  bPlay.addEventListener('click',function(){playing?pause():play();});
+
+  stage.addEventListener('click',function(e){
+    if(e.target.closest('.ov'))return;
+    stage.classList.toggle('hideui');
+  });
+
+  var ovStart=document.getElementById('ovStart'),ovCount=document.getElementById('ovCount'),ovEnd=document.getElementById('ovEnd');
+  var num=document.getElementById('num');
+  document.getElementById('goBtn').addEventListener('click',function(e){
+    e.stopPropagation();
+    ovStart.classList.remove('show');ovCount.classList.add('show');
+    var n=3;num.textContent=n;
+    var iv=setInterval(function(){
+      n--;
+      if(n>0){num.textContent=n;}
+      else{clearInterval(iv);ovCount.classList.remove('show');stage.classList.add('hideui');enter(0);play();}
+    },1000);
+  });
+  document.getElementById('replayBtn').addEventListener('click',function(e){
+    e.stopPropagation();
+    ovEnd.classList.remove('show');stage.classList.add('hideui');enter(0);play();
+  });
+
+  enter(0);
+})();
+</script>
+</body>
+</html>
