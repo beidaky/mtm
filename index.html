@@ -371,14 +371,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 
   <div class="ov show" id="ovStart">
     <h2>暗挖施工测量<br>讲解动画</h2>
-    <p>锁口圈 · 竖井横通道 · 马头门<br>约 1 分 10 秒，竖屏播放</p>
-    <p>先打开手机录屏，再点开始。<br>播放中点一下屏幕，可显示或隐藏按钮。</p>
-    <button class="go" id="goBtn">开始（3 秒后播放）</button>
+    <p>锁口圈 · 竖井横通道 · 马头门<br>约 1 分 10秒，竖屏播放</p>
+    <!-- <p>先打开手机录屏，再点开始。<br>播放中点一下屏幕，可显示或隐藏按钮。</p> -->
+    <button class="go" id="goBtn">开始</button>
   </div>
   <div class="ov" id="ovCount"><div class="num" id="num">3</div></div>
   <div class="ov" id="ovEnd">
     <h2>播放完毕</h2>
-    <p>可以停止录屏了</p>
+    <!-- <p>可以停止录屏了</p> -->
     <button class="go" id="replayBtn">重新播放</button>
   </div>
 </main>
@@ -490,16 +490,26 @@ button{font:inherit;color:inherit;cursor:pointer}
 
   var ovStart=document.getElementById('ovStart'),ovCount=document.getElementById('ovCount'),ovEnd=document.getElementById('ovEnd');
   var num=document.getElementById('num');
+  
   document.getElementById('goBtn').addEventListener('click',function(e){
     e.stopPropagation();
-    ovStart.classList.remove('show');ovCount.classList.add('show');
-    var n=3;num.textContent=n;
-    var iv=setInterval(function(){
-      n--;
-      if(n>0){num.textContent=n;}
-      else{clearInterval(iv);ovCount.classList.remove('show');stage.classList.add('hideui');enter(0);play();}
-    },1000);
+    ovStart.classList.remove('show');
+    
+    // 以下为原来的倒计时代码，已变灰注释
+    // ovCount.classList.add('show');
+    // var n=3;num.textContent=n;
+    // var iv=setInterval(function(){
+    //   n--;
+    //   if(n>0){num.textContent=n;}
+    //   else{clearInterval(iv);ovCount.classList.remove('show');stage.classList.add('hideui');enter(0);play();}
+    // },1000);
+    
+    // 删掉倒计时后，直接执行播放逻辑
+    stage.classList.add('hideui');
+    enter(0);
+    play();
   });
+  
   document.getElementById('replayBtn').addEventListener('click',function(e){
     e.stopPropagation();
     ovEnd.classList.remove('show');stage.classList.add('hideui');enter(0);play();
